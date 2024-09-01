@@ -61,6 +61,18 @@ export const signup = async (req, res) => {
 //login controller
 export const login = async (req, res) => {
   try {
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user || !(await user.comparePassword(password))) {
+      return res.status(401).json({ error: "Invalid email or password" });
+    }
+    const { accessToken, refreshToken } = generateToken(user._id);
+    await storeRefreshToken(user._id, refreshToken);
+    setCookies(res, accessToken, refreshToken);
+
+    res.status(200).json({ message: `Welcome ${user.name}` });
   } catch (error) {
     console.log();
     res.status(500).json();
