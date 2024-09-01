@@ -116,27 +116,27 @@ export const logout = async (req, res) => {
 
 export const refreshToken = async (req, res) => {
   try {
-    const { refreshToken } = req.cookies;
+    const { refreshToken } = req.cookies; // get refresh token from cookies
 
     if (!refreshToken) {
-      return res.status(401).json({ message: "Refresh token not found" });
+      return res.status(401).json({ message: "Refresh token not found" }); // return error if refresh token not found
     }
 
-    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET); // verify refresh token
 
     const storedToken = await redis.get(`refreshToken:${decoded.userId}`);
 
-    if (refreshToken !== storedToken) {
+    if (refreshToken !== storedToken) { // check if refresh token matches
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
-    const accessToken = jwt.sign(
+    const accessToken = jwt.sign(  // generate new access token
       { userId: decoded.userId },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" }
     );
 
-    res.cookie("accessToken", accessToken, {
+    res.cookie("accessToken", accessToken, { // set new access token in cookies
       httpOnly: true,
       sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
@@ -151,3 +151,7 @@ export const refreshToken = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
+export const getProfile = async (req, res) => {
+
+}
