@@ -1,4 +1,5 @@
 import User from "../models/user.model.js";
+import jwt from "jsonwebtoken";
 
 export const protectRoute = async (req, res, next) => {
   try {
@@ -47,4 +48,3 @@ export const adminRoute = async (req, res, next) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
-
