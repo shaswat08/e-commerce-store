@@ -1,9 +1,58 @@
+import User from "../models/user.model.js";
+import {
+  generateToken,
+  setCookies,
+} from "../utils/generateTokenAndSetCookie.js";
+import { storeRefreshToken } from "../utils/storeRefreshToken.js";
+
 //signup controller
+
 export const signup = async (req, res) => {
   try {
+    const { name, email, password } = req.body; //destructuring the request body
+
+    const userExists = await User.findOne({ email }); //check if user exists
+
+    if (userExists) {
+      return res.status(400).json({ error: "User already exists" });
+    }
+
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    const emailValid = emailRegex.test(email); //check if email is valid
+
+    if (!emailValid) {
+      return res.status(400).json({ error: "Invalid Email provided" });
+    }
+
+    const user = await User.create({ name, email, password }); //create a new user
+
+    //authenticate user
+
+    const { accessToken, refreshToken } = generateToken(user._id);
+
+    //store refresh token in redis
+
+    await storeRefreshToken(user._id, refreshToken);
+
+    //set cookies
+
+    setCookies(res, accessToken, refreshToken);
+
+    //send response
+
+    res.status(201).json({
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+      message: "User created successfully",
+    });
   } catch (error) {
-    console.log();
-    res.status(500).json();
+    console.error("Error in the signup controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
