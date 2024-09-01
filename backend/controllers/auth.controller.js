@@ -1,3 +1,5 @@
+import { redis } from "../lib/redis.js";
+import jwt from "jsonwebtoken";
 import User from "../models/user.model.js";
 import {
   generateToken,
@@ -68,8 +70,28 @@ export const login = async (req, res) => {
 //logout controller
 export const logout = async (req, res) => {
   try {
+    //remove refresh token from redis
+
+    const { accessToken, refreshToken } = req.cookies;
+
+    if (!accessToken && !refreshToken) {
+      return res.status(400).json({ error: "No active session found" });
+    }
+
+    if (refreshToken) {
+      const decoded = jwt.verify(
+        refreshToken,
+        process.env.REFRESH_TOKEN_SECRET
+      );
+      await redis.del(`refreshToken:${decoded.userId}`);
+    }
+
+    res.clearCookie("accessToken");
+    res.clearCookie("refreshToken");
+
+    res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
-    console.log();
-    res.status(500).json();
+    console.error("Error in the logout controller: ", error.message);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
