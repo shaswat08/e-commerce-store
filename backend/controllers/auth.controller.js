@@ -54,7 +54,9 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in the signup controller: ", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -66,7 +68,7 @@ export const login = async (req, res) => {
     const user = await User.findOne({ email });
 
     if (!user || !(await user.comparePassword(password))) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ message: "Invalid email or password" });
     }
     const { accessToken, refreshToken } = generateToken(user._id);
     await storeRefreshToken(user._id, refreshToken);
@@ -75,7 +77,9 @@ export const login = async (req, res) => {
     res.status(200).json({ message: `Welcome ${user.name}` });
   } catch (error) {
     console.log();
-    res.status(500).json();
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
 
@@ -87,7 +91,7 @@ export const logout = async (req, res) => {
     const { accessToken, refreshToken } = req.cookies;
 
     if (!accessToken && !refreshToken) {
-      return res.status(400).json({ error: "No active session found" });
+      return res.status(400).json({ message: "No active session found" });
     }
 
     if (refreshToken) {
@@ -104,6 +108,46 @@ export const logout = async (req, res) => {
     res.status(200).json({ message: "Logged out successfully" });
   } catch (error) {
     console.error("Error in the logout controller: ", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
+
+export const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.cookies;
+
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token not found" });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
+
+    const storedToken = await redis.get(`refreshToken:${decoded.userId}`);
+
+    if (refreshToken !== storedToken) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    const accessToken = jwt.sign(
+      { userId: decoded.userId },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: "15m" }
+    );
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.json({ message: "Token refreshed successfully" });
+  } catch (error) {
+    console.error("Error in the refreshToken controller: ", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
   }
 };
