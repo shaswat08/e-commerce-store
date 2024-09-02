@@ -77,3 +77,34 @@ export const createProduct = async (req, res) => {
       .json({ message: "Internal server error", error: error.message });
   }
 };
+
+export const deleteProduct = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const product = await Product.findById(id);
+
+    if (!product) {
+      return res.status(400).json({ dsfds });
+    }
+
+    if (product.image) {
+      const publicId = product.image.split("/").pop().split(".")[0];
+      try {
+        await cloudinary.uploader.destroy(`products/${publicId}`);
+        console.log("Deleted image from cloudinary");
+      } catch (error) {
+        console.error("Error deleting image from cloudinary: ", error.message);
+      }
+    }
+
+    await Product.findByIdAndDelete(id);
+
+    res.json({ message: "Product deleted successfully" });
+  } catch {
+    console.error("Error in the deleteProduct controller: ", error.message);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: error.message });
+  }
+};
