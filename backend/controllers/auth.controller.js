@@ -126,17 +126,20 @@ export const refreshToken = async (req, res) => {
 
     const storedToken = await redis.get(`refreshToken:${decoded.userId}`);
 
-    if (refreshToken !== storedToken) { // check if refresh token matches
+    if (refreshToken !== storedToken) {
+      // check if refresh token matches
       return res.status(401).json({ message: "Invalid refresh token" });
     }
 
-    const accessToken = jwt.sign(  // generate new access token
+    const accessToken = jwt.sign(
+      // generate new access token
       { userId: decoded.userId },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: "15m" }
     );
 
-    res.cookie("accessToken", accessToken, { // set new access token in cookies
+    res.cookie("accessToken", accessToken, {
+      // set new access token in cookies
       httpOnly: true,
       sameSite: "strict",
       secure: process.env.NODE_ENV === "production",
@@ -152,6 +155,4 @@ export const refreshToken = async (req, res) => {
   }
 };
 
-export const getProfile = async (req, res) => {
-
-}
+export const getProfile = async (req, res) => {};
